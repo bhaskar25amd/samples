@@ -1,5 +1,6 @@
 {
   "pr_id": 101,
+  "rocm_score":90,
   "title": "Add new billing API",
   "description": "Implements the /billing endpoint for customer payments",
   "author": "Bhaskar",
