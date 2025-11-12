@@ -4,7 +4,7 @@
   "title": "Add new billing API",
   "description": "Implements the /billing endpoint for customer payments",
   "author": "Bhaskar",
-  "reviewer": "",
+  "reviewer": "Bhaskar",
   "status": "complete",
   "created_date": "2025-11-11",
   "modified_date": "2025-11-11"
