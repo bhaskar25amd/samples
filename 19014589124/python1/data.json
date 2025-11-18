@@ -1,0 +1,11 @@
+{
+  "pr_id": 101,
+  "rocm_score":88,
+  "title": "Add new billing API",
+  "description": "Implements the /billing endpoint for customer payments",
+  "author": "Bhaskar",
+  "reviewer": "ar",
+  "status": "complete",
+  "created_date": "2025-11-11",
+  "modified_date": "2025-11-11"
+}

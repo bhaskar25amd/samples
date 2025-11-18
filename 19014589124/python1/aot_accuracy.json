@@ -1,0 +1,40 @@
+{
+    "schema_version": "v1",
+    "submit_date": "2025-11-14 14:43:17",
+    "component": "Dont Know",
+    "subcomp": "accuracy",
+    "model": "aot",
+    "precision": "bfloat16",
+    "mode": "inference",
+    "benchmark_infra": "huggingface",
+    "version": "latest",
+    "gpuarch": "Dont Know",
+    "sdk_version": "7.1.0",
+    "repo": "https://github.com/pytorch/pytorch",
+    "commithash": "8d599045cf4102e451a9e8a9ff215d053ebbe0e8",
+    "total_count": 30,
+    "pass_count": 24,
+    "score": 80.0,
+    "version_details": {
+        "python": "3.10.12"
+    },
+    "score_details": {
+        "logurl": "https://github.com/ROCm/aisw-hud/actions/runs/18618539417",
+        "total": 30,
+        "passed": 24,
+        "nfailures": 4,
+        "passrate": 80.0,
+        "failrate": 13.33,
+        "skiprate": 6.67,
+        "hostname": "<hostname>",
+        "docker": "<docker_name>"
+    },
+    "rocm_details": {
+        "comment": "<Additional notes>",
+        "logurl": "https://github.com/ROCm/aisw-hud/actions/runs/18618539417"
+    },
+    "cuda_details": {
+        "comment": "<Additional notes>",
+        "logurl": "URL of CUDA run logs"
+    }
+}
