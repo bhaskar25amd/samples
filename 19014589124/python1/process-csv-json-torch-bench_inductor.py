@@ -10,14 +10,6 @@ from datetime import datetime
 def parse_from_filename(csv_path):
     base = os.path.basename(csv_path).replace(".csv", "")
     parts = base.split("_")
-    #!/usr/bin/env python5
-
-import pandas as pd
-import json
-import argparse
-import sys
-import os
-from datetime import datetime
 
 def parse_from_filename(csv_path):
     base = os.path.basename(csv_path).replace(".csv", "")
