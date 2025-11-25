@@ -1,22 +1,39 @@
-#!/usr/bin/env python5
+#!/usr/bin/env python3
 
 import pandas as pd
 import json
 import argparse
 import sys
 import os
+import re
+import shlex
+import subprocess
+import pathlib
 from datetime import datetime
 
-def parse_from_filename(csv_path):
-    base = os.path.basename(csv_path).replace(".csv", "")
-    parts = base.split("_")
+def get_uname():
+    uname_result = os.uname()
+    uname_str = ' '.join(uname_result)
+    return uname_str
+
+def get_commithash():
+    cmd = "git rev-parse HEAD"
+    try:
+        ps1 = subprocess.check_output(shlex.split(cmd), bufsize=0, stderr=subprocess.STDOUT)
+        out = str(ps1.decode('utf-8')).strip()
+        return str(out)
+    except subprocess.CalledProcessError as err:
+        for line in str.splitlines(err.output.decode('utf-8')):
+            print(line)
+        return "error_not_available"
+
 
 def parse_from_filename(csv_path):
     base = os.path.basename(csv_path).replace(".csv", "")
     parts = base.split("_")
-    startDelimiter = "inductor",
+    startDelimiter={"inductor"}
     endDelimiters = {"torchbench", "huggingface", "timm"}
-   
+
     model_parts = []
     idx = 0
 
@@ -29,32 +46,49 @@ def parse_from_filename(csv_path):
     full_model = "_".join(model_parts[1::])
     remaining = parts[idx:]
 
-    benchmark = remaining[0] if len(remaining) > 0 else "unknown"
-    precision = remaining[1] if len(remaining) > 1 else "unknown"
-    mode = remaining[2] if len(remaining) > 2 else "unknown"
+    remaining = parts[idx:]   # [benchmark, models/precision, ...]
+
+    # Default
+    benchmark = "unknown"
+    precision = "unknown"
+    mode = "unknown"
+
+    if len(remaining) >= 1:
+        benchmark = remaining[0]
+
+    if len(remaining) >= 2:
+        # CASE: benchmark, models, precision, mode
+        if remaining[1] == "models":
+            if len(remaining) >= 3:
+                precision = remaining[2]
+            if len(remaining) >= 4:
+                mode = remaining[3]
+
+        # CASE: benchmark, precision, mode
+        else:
+            precision = remaining[1]
+            if len(remaining) >= 3:
+                mode = remaining[2]
 
     return full_model, benchmark, precision, mode
 
 
 def to_python_int(value):
-    """Convert pandas/numpy int64 to native Python int"""
     return int(value)
 
 
-def process_accuracy_csv(args):
-    print("Running pytorch/parse_accuracy_csv.py utility V1.0")
-
-    csv_path = args.csvfile[0]
+def generate_accuracy_json_from_csv(csv_path, args):
+    print(f"\nProcessing CSV: {csv_path}")
 
     try:
         df = pd.read_csv(csv_path)
     except Exception as e:
         print("Error reading CSV:", e)
-        sys.exit(1)
+        return None
 
     if "accuracy" not in df.columns:
-        print("Column 'accuracy' not found in CSV.")
-        sys.exit(1)
+        print("Skipping", csv_path, "(no accuracy column)")
+        return None
 
     df["accuracy"] = df["accuracy"].astype(str).str.lower()
 
@@ -67,47 +101,40 @@ def process_accuracy_csv(args):
     fail_rate = round((fail_count / total) * 100, 2)
     skip_rate = round((skip_count / total) * 100, 2)
 
-    model, benchmark, precision, mode = parse_from_filename(csv_path)
+    model, benchmark, precision, mode = parse_from_filename(os.path.basename(csv_path))
+#    gpuarch = get_gfxarch()
+    uname_details = get_uname()
+    commithash = get_commithash()
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    compname = "pytorch"
 
+    # JSON keys
     k = [
-        "schema_version",
-        "submit_date",
-        "component",
-        "subcomp",
-        "model",
-        "precision",
-        "mode",
-        "benchmark_infra",
-        "version",
-        "gpuarch",
-        "sdk_version",
-        "repo",
-        "commithash",
-        "total_count",
-        "pass_count",
-        "version_details",
-        "score_details",
-        "rocm_details",
-        "cuda_details"
+        "schema_version", "submit_date", "component", "subcomp", "model",
+        "precision", "mode", "benchmark_infra", "version", "gpuarch",
+        "sdk_version", "repo", "commithash", "total_count", "pass_count",
+        "version_details", "score_details", "rocm_details", "cuda_details"
     ]
 
+    # JSON values
     v = [
         "v1",
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "Dont Know",
-        "accuracy",
+        compname,
+        args.subcomp[0],
         model,
         precision,
         mode,
         benchmark,
-        "latest",
-        "Dont Know",
+        args.version[0],
+        args.gpuarch[0],
+ #       gpuarch,
         "7.1.0",
-        "https://github.com/pytorch/pytorch",
-        "8d599045cf4102e451a9e8a9ff215d053ebbe0e8",
+        args.repo[0],
+        commithash,
         total,
         pass_count,
-        {"python": "3.10.12"},
+        {"python": python_version},
         {
             "total": total,
             "passed": pass_count,
@@ -115,11 +142,13 @@ def process_accuracy_csv(args):
             "nskipped": skip_count,
             "passrate": pass_rate,
             "failrate": fail_rate,
-            "skiprate": skip_rate
+            "skiprate": skip_rate,
+            "hostname": uname_details,
+            "docker": args.docker[0]
         },
         {
             "comment": "<Additional notes>",
-            "logurl": "https://github.com/ROCm/aisw-hud/actions/runs/18618539417"
+            "logurl": "https://github.com/ROCm/aisw-hud/actions/runs/" + args.run_id[0]
         },
         {
             "comment": "<Additional notes>",
@@ -127,26 +156,42 @@ def process_accuracy_csv(args):
         }
     ]
 
-    print("total pass fail skip")
-    print(total, pass_count, fail_count, skip_count)
-    print("passrate =", pass_rate)
-
-    output_json = dict(zip(k, v))
     print("AISWHUD JSON OUTPUT")
-    print(json.dumps(output_json, indent=4))
+    print(json.dumps(dict(zip(k,v)), indent=4))
 
-    json_output_file = f"{model}_accuracy.json"
-    with open(json_output_file, "w") as f:
-        json.dump(output_json, f, indent=4)
+def process_accuracy_csv(args):
+    print("Running pytorch/parse_accuracy_csv.py utility V1.0")
+    # --csvdir provided (directory)
+    if args.csvdir:
+        csv_path = pathlib.Path(args.csvdir[0])
+        if not csv_path.exists():
+            print("Directory does not exist:", csv_path)
+            sys.exit(1)
 
-    print("JSON written to:", json_output_file)
+        csv_files = list(csv_path.glob("*.csv"))
+        if not csv_files:
+            print("No CSV files found in directory.")
+            sys.exit(0)
+
+        for csv_file in csv_files:
+            generate_accuracy_json_from_csv(str(csv_file), args)
+        return
+
+    print("ERROR: Provide either --csvfile or --csvdir")
+    sys.exit(1)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process Accuracy CSV File.")
-    parser.add_argument('--csvfile', nargs=1, dest='csvfile', required=True,
-    help="Path to accuracy CSV file")
+    parser = argparse.ArgumentParser(description="Process Accuracy CSV Files.")
+    parser.add_argument('--subcomp', nargs=1, required=True, help="Subcomponent name")
+    parser.add_argument('--gpuarch', nargs=1, required=True, help="gpuarch name")
+    parser.add_argument('--run_id', nargs=1, required=True, help="workflow run_id")
+    parser.add_argument('--repo', nargs=1, required=True, help="github repo path")
+    parser.add_argument('--docker', nargs=1, dest='docker', required=True, help="docker image name")
+    parser.add_argument('--version', nargs=1, dest='version', required=True, help="Code version/branch name")
+    parser.add_argument('--csvdir', nargs=1, help="Directory containing multiple CSV files")
 
     args = parser.parse_args()
     process_accuracy_csv(args)
     sys.exit(0)
+
