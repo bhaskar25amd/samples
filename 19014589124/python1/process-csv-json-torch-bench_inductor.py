@@ -11,6 +11,26 @@ import subprocess
 import pathlib
 from datetime import datetime
 
+def get_gfxarch():
+    gfx_to_prodname = {"gfx90a" : "MI250", "gfx942" : "MI300X", "gfx941" : "MI300A", "gfx950" : "MI350"}
+    # pipe amdgpu-arch to uniq: amdgpu-arch | uniq
+    archcmd = "amdgpu-arch"
+    uniqcmd = "uniq"
+    try:
+        ps1 = subprocess.Popen(shlex.split(archcmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ps2 = subprocess.Popen(shlex.split(uniqcmd), stdin=ps1.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        ps1.stdout.close()
+        out = ps2.communicate()[0]
+        #out = str(ps1.decode('utf-8')).strip()
+        #print(out.decode('utf-8'))
+        gfx = str(out.decode('utf-8').strip())
+        if gfx in gfx_to_prodname.keys():
+            return gfx_to_prodname[gfx]
+        return "gfx900"
+    except subprocess.CalledProcessError as err:
+        for line in str.splitlines(err.output.decode('utf-8')):
+            print(line)
+        return "gfx900"
 def get_uname():
     uname_result = os.uname()
     uname_str = ' '.join(uname_result)
@@ -102,7 +122,7 @@ def generate_accuracy_json_from_csv(csv_path, args):
     skip_rate = round((skip_count / total) * 100, 2)
 
     model, benchmark, precision, mode = parse_from_filename(os.path.basename(csv_path))
-#    gpuarch = get_gfxarch()
+    gpuarch = get_gfxarch()
     uname_details = get_uname()
     commithash = get_commithash()
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
@@ -127,8 +147,8 @@ def generate_accuracy_json_from_csv(csv_path, args):
         mode,
         benchmark,
         args.version[0],
-        args.gpuarch[0],
- #       gpuarch,
+        #args.gpuarch[0]
+        gpuarch,
         "7.1.0",
         args.repo[0],
         commithash,
@@ -184,7 +204,7 @@ def process_accuracy_csv(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process Accuracy CSV Files.")
     parser.add_argument('--subcomp', nargs=1, required=True, help="Subcomponent name")
-    parser.add_argument('--gpuarch', nargs=1, required=True, help="gpuarch name")
+    #parser.add_argument('--gpuarch', nargs=1, required=True, help="gpuarch name")
     parser.add_argument('--run_id', nargs=1, required=True, help="workflow run_id")
     parser.add_argument('--repo', nargs=1, required=True, help="github repo path")
     parser.add_argument('--docker', nargs=1, dest='docker', required=True, help="docker image name")
