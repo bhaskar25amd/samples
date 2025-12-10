@@ -26,7 +26,8 @@ jobs:
           echo "Found JSON file: $FILE"
           echo "file_found=true" >> $GITHUB_OUTPUT
           echo "json_file=$FILE" >> $GITHUB_OUTPUT
-          ROCM_SCORE=$(jq -r 'try (.rocm_score | tonumber) catch 0' "$FILE")
+          # Grab first rocm_score line and extract the number with sed
+          ROCM_SCORE=$(grep -m1 '"rocm_score"' "$FILE" | sed -E 's/.*"rocm_score": *([^, ]*).*/\1/' || echo 0)
           echo "ROCM_SCORE=$ROCM_SCORE" >> $GITHUB_ENV
       - name: Label PR if ROCm score < 90
         if: env.ROCM_SCORE < 90
