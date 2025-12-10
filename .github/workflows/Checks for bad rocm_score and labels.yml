@@ -1,1 +1,35 @@
-Checks for bad rocm_score and labels.yml
+name: Checks for bad rocm_score and labels.yml
+on:
+  pull_request:
+    types: [opened, synchronize]
+jobs:
+  check-rocm-score:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+      - name: Find JSON file
+        id: find
+        run: |
+          # You can adjust this pattern if the file name is known
+          FILE=$(find . -type f -name "*.json" | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "No JSON file found in PR"
+            echo "file_found=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "Found JSON file: $FILE"
+          echo "file_found=true" >> $GITHUB_OUTPUT
+          echo "json_file=$FILE" >> $GITHUB_OUTPUT
+          ROCM_SCORE=$(jq '.rocm_score' "$FILE")
+          echo "ROCM_SCORE=$ROCM_SCORE" >> $GITHUB_ENV
+      - name: Label PR if ROCm score < 90
+        if: env.ROCM_SCORE < 90
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: low-rocm-score
