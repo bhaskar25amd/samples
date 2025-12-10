@@ -25,7 +25,7 @@ jobs:
           echo "Found JSON file: $FILE"
           echo "file_found=true" >> $GITHUB_OUTPUT
           echo "json_file=$FILE" >> $GITHUB_OUTPUT
-          ROCM_SCORE=$(jq '.rocm_score' "$FILE")
+          ROCM_SCORE=$(jq -r 'try (.rocm_score | tonumber) catch 0' "$FILE")
           echo "ROCM_SCORE=$ROCM_SCORE" >> $GITHUB_ENV
       - name: Label PR if ROCm score < 90
         if: env.ROCM_SCORE < 90
