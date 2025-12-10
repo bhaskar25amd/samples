@@ -16,7 +16,7 @@ except Exception as e:
     print(f"Error reading file: {e}")
     sys.exit(1)
 
-# Check if 'accuracy' column exists
+# Check f 'accuracy' column exists
 if 'accuracy' not in df.columns:
     print("Column 'accuracy' not found in the CSV.")
     sys.exit(1)
