@@ -1,5 +1,6 @@
 name: Checks for bad rocm_score and labels.yml
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, synchronize]
 jobs:
