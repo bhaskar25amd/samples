@@ -1,5 +1,3 @@
-@srinivamd This is the automated workflow for cleanup auto generated branch older than a week.
-
 name: Cleanup auto-generated branches
 
 on:
