@@ -1,0 +1,43 @@
+@srinivamd This is the automated workflow for cleanup auto generated branch older than a week.
+
+name: Cleanup auto-generated branches
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # Runs daily at 2 AM UTC
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Cleanup old auto-generated branches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          DAYS: 5
+        run: |
+          set -e
+
+          CUTOFF_DATE=$(date -u -d "$DAYS days ago" +%s)
+
+          gh api repos/$REPO/branches --paginate \
+            | jq -r '.[] | .name' \
+            | grep -E '^(add)/' \
+            | while read branch; do
+
+                LAST_COMMIT_DATE=$(gh api repos/$REPO/commits/$branch \
+                  | jq -r '.commit.committer.date')
+
+                LAST_COMMIT_TS=$(date -d "$LAST_COMMIT_DATE" +%s)
+
+                if [ "$LAST_COMMIT_TS" -lt "$CUTOFF_DATE" ]; then
+                  echo "Deleting branch: $branch"
+                  gh api -X DELETE repos/$REPO/git/refs/heads/$branch
+                else
+                  echo "Keeping branch: $branch"
+                fi
+              done
