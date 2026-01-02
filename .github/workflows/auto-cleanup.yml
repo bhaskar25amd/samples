@@ -24,7 +24,7 @@ jobs:
 
           gh api repos/$REPO/branches --paginate \
             | jq -r '.[] | .name' \
-            | grep -E '^(add)/' \
+            | grep -E '^(auto|generated|ci|tmp)/' \
             | while read branch; do
 
                 LAST_COMMIT_DATE=$(gh api repos/$REPO/commits/$branch \
