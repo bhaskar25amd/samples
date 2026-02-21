@@ -112,7 +112,7 @@ def main():
         }
     }
 
-    # Write JSON output file
+    # Write JSON output file.
     json_output_file = f"{meta['model']}_accuracy.json"
     with open(json_output_file, "w") as f:
         json.dump(output, f, indent=4)
